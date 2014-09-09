@@ -10,7 +10,8 @@ namespace PortMapSleuth {
     [Route("/requests", "POST")]
     [Route("/requests/{Id}", "PUT")]
     public class PortTestRequest : IReturn<PortTestRequest> {
-        public Port[] Ports { get; set; }
+        public int[] Ports { get; set; }
+        public IPProtocol PortProtocol { get; set; }
         public bool Done { get; set; }
         public long Id { get; set; }
         public string IPAddress { get; set; }
@@ -23,11 +24,6 @@ namespace PortMapSleuth {
         public PortTestRequests(params long[] ids) {
             Ids = ids;
         }
-    }
-
-    public struct Port {
-        public IPProtocol Protocol;
-        public int PortNumber;
     }
 
     public enum IPProtocol {
@@ -44,9 +40,10 @@ namespace PortMapSleuth {
         public object Post(PortTestRequest portTest) {
             Console.WriteLine("Got port test request:");
             Console.WriteLine("IP: " + portTest.IPAddress);
+            Console.WriteLine("Ports IP Protocol: " + portTest.PortProtocol);
             Console.WriteLine("Ports: ");
-            foreach (Port port in portTest.Ports) {
-                Console.WriteLine(port);
+            foreach (var port in portTest.Ports) {
+                Console.WriteLine(port); 
             }
             Console.WriteLine("------------------------------------");
 
@@ -56,8 +53,8 @@ namespace PortMapSleuth {
         private HttpResult TestUDPPorts(PortTestRequest portTestRequest) {
             List<bool> results = new List<bool>();
 
-            foreach (Port port in portTestRequest.Ports) {
-                results.Add( TestUDPPort(portTestRequest.IPAddress, port.PortNumber) );
+            foreach (int port in portTestRequest.Ports) {
+                results.Add( TestUDPPort(portTestRequest.IPAddress, port) );
             }
 
             var httpResult = new HttpResult(HttpStatusCode.OK);
