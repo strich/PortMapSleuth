@@ -23,7 +23,7 @@ namespace PortMapSleuth {
             public AppHost() : base("Port Test Requests", typeof (PortTestRequest).Assembly) {}
 
             public override void Configure(Container container) {
-                container.Register(new PortTestRepository());
+                //container.Register(new PortTestRepository());
             }
         }
     }

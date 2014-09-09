@@ -49,7 +49,8 @@ namespace ClientTest {
         private static void FinishPortTestWebRequest(IAsyncResult result) {
             var response = ((HttpWebRequest)result.AsyncState).EndGetResponse(result) as HttpWebResponse;
 
-            Console.WriteLine(response.StatusDescription);
+            Console.WriteLine(response.StatusCode);
+            Console.WriteLine(response.Headers.Get("PortTestResult"));
         }
     }
 }
