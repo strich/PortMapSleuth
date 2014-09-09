@@ -42,6 +42,14 @@ namespace PortMapSleuth {
 
     public class PortTestService : Service {
         public object Post(PortTestRequest portTest) {
+            Console.WriteLine("Got port test request:");
+            Console.WriteLine("IP: " + portTest.IPAddress);
+            Console.WriteLine("Ports: ");
+            foreach (Port port in portTest.Ports) {
+                Console.WriteLine(port);
+            }
+            Console.WriteLine("------------------------------------");
+
             return TestUDPPorts(portTest);
         }
 
