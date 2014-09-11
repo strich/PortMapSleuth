@@ -39,6 +39,7 @@ namespace PortMapSleuth {
     public class PortTestService : Service {
         public object Post(PortTestRequest portTest) {
             Console.WriteLine("Got port test request:");
+            Console.WriteLine("IP (ServiceStack): " + Request.RemoteIp);
             Console.WriteLine("IP: " + portTest.IPAddress);
             Console.WriteLine("Ports IP Protocol: " + portTest.PortProtocol);
             Console.WriteLine("Ports: ");
@@ -46,7 +47,7 @@ namespace PortMapSleuth {
                 Console.WriteLine(port); 
             }
             Console.WriteLine("------------------------------------");
-
+            
             return TestUDPPorts(portTest);
         }
 
@@ -54,7 +55,7 @@ namespace PortMapSleuth {
             List<bool> results = new List<bool>();
 
             foreach (int port in portTestRequest.Ports) {
-                results.Add( TestUDPPort(portTestRequest.IPAddress, port) );
+                results.Add(TestUDPPort(Request.RemoteIp, port));
             }
 
             var httpResult = new HttpResult(HttpStatusCode.OK);
