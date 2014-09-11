@@ -73,17 +73,26 @@ namespace PortMapSleuth {
             try {
                 using (UdpClient udpClient = new UdpClient()) {
                     IPEndPoint RemoteIpEndPoint = new IPEndPoint(IPAddress.Parse(ipAddress), port);
+                    IPEndPoint RemoteIpEndPointReply = new IPEndPoint(IPAddress.Parse(ipAddress), 0);
                     Byte[] sendBytes = Encoding.ASCII.GetBytes("Port test.");
 
                     udpClient.Client.ReceiveTimeout = 300; // milliseconds
                     udpClient.Connect(RemoteIpEndPoint);
                     udpClient.Send(sendBytes, sendBytes.Length);
-                    udpClient.Receive(ref RemoteIpEndPoint);
+                    udpClient.Receive(ref RemoteIpEndPointReply);
 
                     return true;
                 }
             } catch (SocketException e) {
-                Console.WriteLine(e.ErrorCode);
+                // Error codes: http://msdn.microsoft.com/en-us/library/windows/desktop/ms740668(v=vs.85).aspx
+                switch (e.ErrorCode) {
+                    case 10060:
+                        // Connection timed out.
+                        Console.WriteLine(e.ErrorCode + " WSAETIMEDOUT");
+                        break;
+                }
+                Console.WriteLine(e.ToString());
+
                 return false;
             }
         }
