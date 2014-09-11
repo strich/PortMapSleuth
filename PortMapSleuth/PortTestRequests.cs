@@ -73,12 +73,11 @@ namespace PortMapSleuth {
             try {
                 using (UdpClient udpClient = new UdpClient()) {
                     IPEndPoint RemoteIpEndPoint = new IPEndPoint(IPAddress.Parse(ipAddress), port);
-                    IPEndPoint RemoteIpEndPointReply = new IPEndPoint(IPAddress.Parse(ipAddress), 0);
+                    IPEndPoint RemoteIpEndPointReply = new IPEndPoint(IPAddress.Any, 0);
                     Byte[] sendBytes = Encoding.ASCII.GetBytes("Port test.");
 
                     udpClient.Client.ReceiveTimeout = 300; // milliseconds
-                    udpClient.Connect(RemoteIpEndPoint);
-                    udpClient.Send(sendBytes, sendBytes.Length);
+                    udpClient.Send(sendBytes, sendBytes.Length, RemoteIpEndPoint);
                     udpClient.Receive(ref RemoteIpEndPointReply);
 
                     return true;

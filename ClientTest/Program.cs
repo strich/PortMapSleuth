@@ -16,26 +16,23 @@ namespace ClientTest {
                 Ports = new int[] {27015, 27016},
                 PortProtocol = IPProtocol.UDP,
                 IPAddress = "124.168.105.223"
+                //IPAddress = "127.0.0.1"
             };
             string portMapRequestJSON = JsonConvert.SerializeObject(portMapRequest);
 
-            // Create the thread object, passing in the Alpha.Beta method
-            // via a ThreadStart delegate. This does not start the thread.
-            Thread oThread = new Thread(StartListener);
+            // Create the thread objects:
+            Thread portListener1 = new Thread(() => StartUDPListener(27015));
+            Thread portListener2 = new Thread(() => StartUDPListener(27016));
 
-            // Start the thread
-            oThread.Start();
-
-            Thread.Sleep(5000);
+            // Start the threads:
+            portListener1.Start();
+            portListener2.Start();
 
             StartWebRequest(portMapRequestJSON);
 
-            // Request that oThread be stopped
-            //oThread.Abort();
-
-            // Wait until oThread finishes. Join also has overloads
-            // that take a millisecond interval or a TimeSpan object.
-            oThread.Join();
+            // Join the threads:
+            portListener1.Join();
+            portListener2.Join();
 
             Console.WriteLine("Finished.");
             while (true) {}
@@ -74,31 +71,22 @@ namespace ClientTest {
             }
         }
 
-        private static void StartListener() {
-            bool done = false;
-
-            IPEndPoint groupEP = new IPEndPoint(IPAddress.Parse("178.62.47.176"), 27015);
-            UdpClient listener = new UdpClient(27015);
-            
+        private static void StartUDPListener(int port) {
+            UdpClient listener = new UdpClient(port);
+            IPEndPoint remoteIPEndPoint = new IPEndPoint(IPAddress.Any, 0);
 
             try {
-                while (!done) {
+                while (true) {
                     Console.WriteLine("Waiting for broadcast");
-                    IPEndPoint RemoteIpEndPoint = new IPEndPoint(IPAddress.Any, 0);
-                    byte[] bytes = listener.Receive(ref RemoteIpEndPoint);
 
-                    //if (bytes.Length == 0)
-                    //    continue;
+                    byte[] bytes = listener.Receive(ref remoteIPEndPoint);
 
-                    //Console.WriteLine("Received broadcast from {0} :\n {1}\n",
-                    //    groupEP.ToString(),
-                    //    Encoding.ASCII.GetString(bytes,0,bytes.Length));
-                    Console.WriteLine("Received broadcast from {0} :\n",
-                        groupEP.ToString());
-                    Console.WriteLine(bytes.ToString());
+                    Console.WriteLine("Received packet from {0}\n",
+                        remoteIPEndPoint);
+                    Console.WriteLine(Encoding.ASCII.GetString(bytes));
 
                     Byte[] sendBytes = Encoding.ASCII.GetBytes("Port test reply.");
-                    listener.Send(sendBytes, sendBytes.Length, groupEP);
+                    listener.Send(sendBytes, sendBytes.Length, remoteIPEndPoint);
 
                     return;
                 }
