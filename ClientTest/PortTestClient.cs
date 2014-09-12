@@ -11,10 +11,9 @@ using Newtonsoft.Json;
 namespace PortMapSleuth {
     public class PortTestClient {
         public const string PortMapSleuthURL = "http://pms.subterraneangames.com/request";
+        //public const string PortMapSleuthURL = "http://127.0.0.1/request";
         private bool _testFinished;
         private PortTestResult _portTestResult;
-
-        public PortTestClient() {}
 
         /// <summary>
         /// Starts port listeners and sends a request to the PortMapSleuth server for testing.
@@ -22,7 +21,7 @@ namespace PortMapSleuth {
         /// <param name="ipProtocol"></param>
         /// <param name="ports"></param>
         /// <returns>Returns successful if all ports succeeded.</returns>
-        public PortTestResult TestPorts(IPProtocol ipProtocol, int[] ports) {
+        public PortTestResult TestPorts(IPProtocol ipProtocol, List<int> ports) {
             var portMapRequest = new PortTestRequest {
                 Ports = ports,
                 IPProtocol = ipProtocol
@@ -75,7 +74,11 @@ namespace PortMapSleuth {
             }
 
             // Send the request and response callback:
-            httpWebRequest.BeginGetResponse(FinishPortTestWebRequest, httpWebRequest);
+            try {
+                httpWebRequest.BeginGetResponse(FinishPortTestWebRequest, httpWebRequest);
+            } catch (Exception e) {
+                Console.WriteLine(e.Message);
+            }
         }
 
         private void FinishPortTestWebRequest(IAsyncResult result) {
@@ -84,27 +87,23 @@ namespace PortMapSleuth {
 
                 _testFinished = true;
                 _portTestResult = (PortTestResult)Enum.Parse(typeof(PortTestResult), response.Headers.Get("PortTestResult"));
-
-                Console.WriteLine(response.StatusCode);
-                Console.WriteLine(response.Headers.Get("PortTestResult"));
             } catch (Exception e) {
                 Console.WriteLine(e.Message);
             }
         }
 
         private void StartUDPListener(int port) {
-            UdpClient listener = new UdpClient(port);
             IPEndPoint remoteIPEndPoint = new IPEndPoint(IPAddress.Any, 0);
+            UdpClient listener = new UdpClient(port) {
+                Client = {ReceiveTimeout = 5000}
+            };
 
+            // Loop until a reply is received of the ReceiveTimeout has elasped:
             try {
                 while (true) {
-                    Console.WriteLine("Waiting for broadcast");
-
                     byte[] bytes = listener.Receive(ref remoteIPEndPoint);
 
-                    Console.WriteLine("Received packet from {0}\n",
-                        remoteIPEndPoint);
-                    Console.WriteLine(Encoding.ASCII.GetString(bytes));
+                    Console.WriteLine("Received packet from {0}\n", remoteIPEndPoint);
 
                     Byte[] sendBytes = Encoding.ASCII.GetBytes("Port test reply.");
                     listener.Send(sendBytes, sendBytes.Length, remoteIPEndPoint);

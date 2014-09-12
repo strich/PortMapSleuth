@@ -1,6 +1,8 @@
-﻿namespace ClientTest {
+﻿using System.Collections.Generic;
+
+namespace ClientTest {
     public class PortTestRequest {
-        public int[] Ports { get; set; }
+        public List<int> Ports { get; set; }
         public IPProtocol IPProtocol { get; set; }
     }
 
