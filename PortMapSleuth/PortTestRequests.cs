@@ -1,47 +1,50 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using ServiceStack;
 
 namespace PortMapSleuth {
-    [Route("/requests", "POST")]
-    [Route("/requests/{Id}", "PUT")]
+    [Route("/request", "POST")]
     public class PortTestRequest : IReturn<PortTestRequest> {
         public int[] Ports { get; set; }
-        public IPProtocol PortProtocol { get; set; }
-        public bool Done { get; set; }
-        public long Id { get; set; }
-        public string IPAddress { get; set; }
+        public IPProtocol IPProtocol { get; set; }
     }
 
-    [Route("/requests")]
-    [Route("/requests/{Id}")]
-    public class PortTestRequests : IReturn<PortTestRequest> {
-        public long[] Ids { get; set; }
-        public PortTestRequests(params long[] ids) {
-            Ids = ids;
-        }
-    }
+    //[Route("/requests")]
+    //[Route("/requests/{Id}")]
+    //public class PortTestRequests : IReturn<PortTestRequest> {
+    //    public long[] Ids { get; set; }
+    //    public PortTestRequests(params long[] ids) {
+    //        Ids = ids;
+    //    }
+    //}
 
     public enum IPProtocol {
         TCP, UDP
     }
 
     public enum PortTestResult {
+        /// <summary>
+        /// None of the ports in the test succeeded.
+        /// </summary>
         Fail,
+        /// <summary>
+        /// Some of the ports in the test succeeded.
+        /// </summary>
         PartialSuccess,
+        /// <summary>
+        /// All ports in the test succeeded.
+        /// </summary>
         FullSuccess
     }
 
     public class PortTestService : Service {
         public object Post(PortTestRequest portTest) {
             Console.WriteLine("Got port test request:");
-            Console.WriteLine("IP (ServiceStack): " + Request.RemoteIp);
-            Console.WriteLine("IP: " + portTest.IPAddress);
-            Console.WriteLine("Ports IP Protocol: " + portTest.PortProtocol);
+            Console.WriteLine("IP: " + Request.RemoteIp);
+            Console.WriteLine("Ports IP Protocol: " + portTest.IPProtocol);
             Console.WriteLine("Ports: ");
             foreach (var port in portTest.Ports) {
                 Console.WriteLine(port); 
@@ -51,11 +54,23 @@ namespace PortMapSleuth {
             return TestUDPPorts(portTest);
         }
 
+        /// <summary>
+        /// Tests all the ports as requested, TCP or UDP.
+        /// </summary>
+        /// <param name="portTestRequest"></param>
+        /// <returns></returns>
         private HttpResult TestUDPPorts(PortTestRequest portTestRequest) {
             List<bool> results = new List<bool>();
 
+            // Test all ports requested
             foreach (int port in portTestRequest.Ports) {
-                results.Add(TestUDPPort(Request.RemoteIp, port));
+                bool testResult;
+                if (portTestRequest.IPProtocol == IPProtocol.UDP)
+                    testResult = TestUDPPort(Request.RemoteIp, port);
+                else
+                    testResult = TestTCPPort(Request.RemoteIp, port);
+
+                results.Add(testResult);
             }
 
             var httpResult = new HttpResult(HttpStatusCode.OK);
@@ -96,55 +111,10 @@ namespace PortMapSleuth {
                 return false;
             }
         }
+
+        private bool TestTCPPort(string ipAddress, int port) {
+            // TODO
+            return false;
+        }
     }
-
-    //public class PortTestService : Service {
-    //    public PortTestRepository Repository { get; set; }
-
-    //    public object Get(PortTestRequests request) {
-    //        return request.Ids.IsEmpty()
-    //            ? Repository.GetAll()
-    //            : Repository.GetByIds(request.Ids);
-    //    }
-
-    //    public object Post(PortTestRequest portTest) {
-    //        var httpResult = new HttpResult(HttpStatusCode.OK);
-    //        httpResult.Headers.Add("PortTestResult", PortTestResult.FullSuccess.ToString());
-    //        return httpResult;
-    //    }
-
-    //    public object Put(PortTestRequest portTest) {
-    //        return Repository.Store(portTest);
-    //    }
-
-    //    public void Delete(PortTestRequests request) {
-    //        Repository.DeleteByIds(request.Ids);
-    //    }
-    //}
-
-    //public class PortTestRepository {
-    //    private readonly List<PortTestRequest> _portTests = new List<PortTestRequest>();
-
-    //    public List<PortTestRequest> GetByIds(long[] ids) {
-    //        return _portTests.Where(x => ids.Contains(x.Id)).ToList();
-    //    }
-
-    //    public List<PortTestRequest> GetAll() {
-    //        return _portTests;
-    //    }
-
-    //    public PortTestRequest Store(PortTestRequest portTest) {
-    //        var existing = _portTests.FirstOrDefault(x => x.Id == portTest.Id);
-    //        if (existing == null) {
-    //            var newId = _portTests.Count > 0 ? _portTests.Max(x => x.Id) + 1 : 1;
-    //            portTest.Id = newId;
-    //        }
-    //        _portTests.Add(portTest);
-    //        return portTest;
-    //    }
-
-    //    public void DeleteByIds(params long[] ids) {
-    //        _portTests.RemoveAll(x => ids.Contains(x.Id));
-    //    }
-    //}
 }
