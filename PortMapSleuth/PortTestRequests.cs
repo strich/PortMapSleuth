@@ -8,18 +8,9 @@ using ServiceStack;
 namespace PortMapSleuth {
     [Route("/request", "POST")]
     public class PortTestRequest : IReturn<PortTestRequest> {
-        public int[] Ports { get; set; }
+        public List<int> Ports { get; set; }
         public IPProtocol IPProtocol { get; set; }
     }
-
-    //[Route("/requests")]
-    //[Route("/requests/{Id}")]
-    //public class PortTestRequests : IReturn<PortTestRequest> {
-    //    public long[] Ids { get; set; }
-    //    public PortTestRequests(params long[] ids) {
-    //        Ids = ids;
-    //    }
-    //}
 
     public enum IPProtocol {
         TCP, UDP
@@ -42,16 +33,19 @@ namespace PortMapSleuth {
 
     public class PortTestService : Service {
         public object Post(PortTestRequest portTest) {
-            Console.WriteLine("Got port test request:");
+            Console.WriteLine("------------------------------------");
+            Console.WriteLine("Got port test request from:");
             Console.WriteLine("IP: " + Request.RemoteIp);
-            Console.WriteLine("Ports IP Protocol: " + portTest.IPProtocol);
+            Console.WriteLine("IP Protocol: " + portTest.IPProtocol);
             Console.WriteLine("Ports: ");
             foreach (var port in portTest.Ports) {
                 Console.WriteLine(port); 
             }
-            Console.WriteLine("------------------------------------");
-            
-            return TestUDPPorts(portTest);
+
+            var result = TestUDPPorts(portTest);
+            Console.WriteLine("Test result: " + result.Headers["PortTestResult"]);
+
+            return result;
         }
 
         /// <summary>
@@ -88,13 +82,13 @@ namespace PortMapSleuth {
         private bool TestUDPPort(string ipAddress, int port) {
             try {
                 using (UdpClient udpClient = new UdpClient()) {
-                    IPEndPoint RemoteIpEndPoint = new IPEndPoint(IPAddress.Parse(ipAddress), port);
-                    IPEndPoint RemoteIpEndPointReply = new IPEndPoint(IPAddress.Any, 0);
+                    IPEndPoint remoteIpEndPoint = new IPEndPoint(IPAddress.Parse(ipAddress), port);
+                    IPEndPoint remoteIpEndPointReply = new IPEndPoint(IPAddress.Any, 0);
                     Byte[] sendBytes = Encoding.ASCII.GetBytes("Port test.");
 
-                    udpClient.Client.ReceiveTimeout = 2000; // milliseconds
-                    udpClient.Send(sendBytes, sendBytes.Length, RemoteIpEndPoint);
-                    udpClient.Receive(ref RemoteIpEndPointReply);
+                    udpClient.Client.ReceiveTimeout = 3000; // milliseconds
+                    udpClient.Send(sendBytes, sendBytes.Length, remoteIpEndPoint);
+                    udpClient.Receive(ref remoteIpEndPointReply);
 
                     return true;
                 }

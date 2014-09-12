@@ -4,12 +4,13 @@ using ServiceStack;
 
 namespace PortMapSleuth {
     internal class Program {
-        private static void Main() {
+        private static void Main(string[] args) {
+            var listeningOn = args.Length == 0 ? "http://*:80/" : "http://*:" + args[0] + "/";
             var appHost = new AppHost()
                 .Init()
-                .Start("http://*/");
+                .Start(listeningOn);
 
-            Console.WriteLine("AppHost Created at {0}, listening on port 80", DateTime.Now);
+            Console.WriteLine("AppHost Created at {0}, listening on {1}", DateTime.Now, listeningOn);
 
             Console.ReadKey();
         }
