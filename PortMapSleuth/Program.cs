@@ -33,7 +33,7 @@ namespace PortMapSleuth {
         }
 
         //Web Service Host Configuration
-        public class AppHost : AppSelfHostBase {
+        public class AppHost : AppHostHttpListenerBase {
             public AppHost() : base("Port Test Request Service", typeof (PortTestRequest).Assembly) {}
 
             public override void Configure(Container container) { }
