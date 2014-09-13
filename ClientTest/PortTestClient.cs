@@ -12,8 +12,13 @@ namespace PortMapSleuth {
     public class PortTestClient {
         public const string PortMapSleuthURL = "http://pms.subterraneangames.com/request";
         //public const string PortMapSleuthURL = "http://127.0.0.1/request";
-        private bool _testFinished;
         private PortTestResult _portTestResult;
+        public delegate void PortTestFinishedEventHandler(PortTestFinishedEventArgs e);
+        public event PortTestFinishedEventHandler PortTestFinished;
+
+        public PortTestClient(PortTestFinishedEventHandler portTestFinishedEventHandler) {
+            PortTestFinished += portTestFinishedEventHandler;
+        }
 
         /// <summary>
         /// Starts port listeners and sends a request to the PortMapSleuth server for testing.
@@ -21,7 +26,7 @@ namespace PortMapSleuth {
         /// <param name="ipProtocol"></param>
         /// <param name="ports"></param>
         /// <returns>Returns successful if all ports succeeded.</returns>
-        public PortTestResult TestPorts(IPProtocol ipProtocol, List<int> ports) {
+        public void TestPorts(IPProtocol ipProtocol, List<int> ports) {
             var portMapRequest = new PortTestRequest {
                 Ports = ports,
                 IPProtocol = ipProtocol
@@ -45,14 +50,6 @@ namespace PortMapSleuth {
             // Join the threads:
             foreach (var listenerThread in listenerThreads) {
                 listenerThread.Join();
-            }
-
-            // Loop until the port test results are returned:
-            while (true) {
-                if (!_testFinished)
-                    continue;
-
-                return _portTestResult;
             }
         }
 
@@ -85,8 +82,9 @@ namespace PortMapSleuth {
             try {
                 var response = ((HttpWebRequest)result.AsyncState).EndGetResponse(result) as HttpWebResponse;
 
-                _testFinished = true;
                 _portTestResult = (PortTestResult)Enum.Parse(typeof(PortTestResult), response.Headers.Get("PortTestResult"));
+                // Send the result to our subscribers:
+                PortTestFinished(new PortTestFinishedEventArgs(_portTestResult));
             } catch (Exception e) {
                 Console.WriteLine(e.Message);
             }
@@ -123,6 +121,13 @@ namespace PortMapSleuth {
             } finally {
                 listener.Close();
             }
+        }
+    }
+
+    public class PortTestFinishedEventArgs : EventArgs {
+        public PortTestResult PortTestResult { get; internal set; }
+        public PortTestFinishedEventArgs(PortTestResult portTestResult) {
+            PortTestResult = portTestResult;
         }
     }
 }
