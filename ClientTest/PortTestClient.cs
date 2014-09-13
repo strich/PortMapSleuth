@@ -92,12 +92,13 @@ namespace PortMapSleuth {
 
         private void StartUDPListener(int port) {
             IPEndPoint remoteIPEndPoint = new IPEndPoint(IPAddress.Any, 0);
-            UdpClient listener = new UdpClient(port) {
-                Client = {ReceiveTimeout = 5000}
-            };
 
             // Loop until a reply is received of the ReceiveTimeout has elasped:
             try {
+                UdpClient listener = new UdpClient(port) {
+                    Client = { ReceiveTimeout = 5000 }
+                };
+
                 while (true) {
                     byte[] bytes = listener.Receive(ref remoteIPEndPoint);
 
@@ -118,8 +119,6 @@ namespace PortMapSleuth {
                         break;
                 }
                 Console.WriteLine(e.ToString());
-            } finally {
-                listener.Close();
             }
         }
     }
