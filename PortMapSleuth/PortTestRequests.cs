@@ -18,6 +18,10 @@ namespace PortMapSleuth {
 
     public enum PortTestResult {
         /// <summary>
+        /// We could not contact the port test server or it otherwise failed.
+        /// </summary>
+        Unknown,
+        /// <summary>
         /// None of the ports in the test succeeded.
         /// </summary>
         Fail,

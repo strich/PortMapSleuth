@@ -4,17 +4,19 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
-using ClientTest;
 using Newtonsoft.Json;
 
 namespace PortMapSleuth {
     public class PortTestClient {
         public const string PortMapSleuthURL = "http://pms.subterraneangames.com/request";
         //public const string PortMapSleuthURL = "http://127.0.0.1/request";
-        private PortTestResult _portTestResult;
+        public PortTestResult PortTestResult;
         public delegate void PortTestFinishedEventHandler(PortTestFinishedEventArgs e);
         public event PortTestFinishedEventHandler PortTestFinished;
+        public bool IsPortTestFinished;
+        public List<UdpClient> UdpClientListeners; 
+
+        public PortTestClient() {}
 
         public PortTestClient(PortTestFinishedEventHandler portTestFinishedEventHandler) {
             PortTestFinished += portTestFinishedEventHandler;
@@ -32,25 +34,30 @@ namespace PortMapSleuth {
                 IPProtocol = ipProtocol
             };
             string portMapRequestJSON = JsonConvert.SerializeObject(portMapRequest);
-            List<Thread> listenerThreads = new List<Thread>(); 
 
-            // Create the thread objects:
-            foreach (var port in ports) {
-                listenerThreads.Add(new Thread(() => StartUDPListener(port)));
+            UdpClientListeners = new List<UdpClient>();
+
+            try {
+                // Create the udp listeners:
+                foreach (var port in ports) {
+                    UdpClientListeners.Add(StartUDPListener(port));
+                }
+
+                // Send out the port test request:
+                StartWebRequest(portMapRequestJSON);
+            } catch(Exception e) {
+                // Error codes: http://msdn.microsoft.com/en-us/library/windows/desktop/ms740668(v=vs.85).aspx
+                Console.WriteLine(e.ToString());
+
+                PortTestException();
             }
+        }
 
-            // Start the threads:
-            foreach (var listenerThread in listenerThreads) {
-                listenerThread.Start();
-            }
-
-            // Send out the port test request:
-            StartWebRequest(portMapRequestJSON);
-
-            // Join the threads:
-            foreach (var listenerThread in listenerThreads) {
-                listenerThread.Join();
-            }
+        private void PortTestException() {
+            PortTestResult = PortTestResult.Unknown;
+            IsPortTestFinished = true;
+            if(PortTestFinished != null)
+                PortTestFinished( new PortTestFinishedEventArgs(PortTestResult));
         }
 
         private void StartWebRequest(string payload) {
@@ -71,55 +78,51 @@ namespace PortMapSleuth {
             }
 
             // Send the request and response callback:
-            try {
-                httpWebRequest.BeginGetResponse(FinishPortTestWebRequest, httpWebRequest);
-            } catch (Exception e) {
-                Console.WriteLine(e.Message);
-            }
+            httpWebRequest.BeginGetResponse(FinishPortTestWebRequest, httpWebRequest);
         }
 
         private void FinishPortTestWebRequest(IAsyncResult result) {
             try {
                 var response = ((HttpWebRequest)result.AsyncState).EndGetResponse(result) as HttpWebResponse;
 
-                _portTestResult = (PortTestResult)Enum.Parse(typeof(PortTestResult), response.Headers.Get("PortTestResult"));
+                PortTestResult = (PortTestResult)Enum.Parse(typeof(PortTestResult), response.Headers.Get("PortTestResult"));
+
                 // Send the result to our subscribers:
-                PortTestFinished(new PortTestFinishedEventArgs(_portTestResult));
+                IsPortTestFinished = true;
+                if (PortTestFinished != null)
+                    PortTestFinished(new PortTestFinishedEventArgs(PortTestResult));
+
             } catch (Exception e) {
                 Console.WriteLine(e.Message);
             }
         }
 
-        private void StartUDPListener(int port) {
+        private UdpClient StartUDPListener(int port) {
             IPEndPoint remoteIPEndPoint = new IPEndPoint(IPAddress.Any, 0);
 
-            // Loop until a reply is received of the ReceiveTimeout has elasped:
-            try {
-                UdpClient listener = new UdpClient(port) {
-                    Client = { ReceiveTimeout = 5000 }
-                };
+            // Start the listener and start an async wait for a packet:
+            UdpClient listener = new UdpClient(port) {
+                Client = { ReceiveTimeout = 5000 }
+            };
 
-                while (true) {
-                    byte[] bytes = listener.Receive(ref remoteIPEndPoint);
+            listener.BeginReceive(ReceiveCallback,
+                new UdpState {IPEndPoint = remoteIPEndPoint, UdpClient = listener});
 
-                    Console.WriteLine("Received packet from {0}\n", remoteIPEndPoint);
+            return listener;
+        }
 
-                    Byte[] sendBytes = Encoding.ASCII.GetBytes("Port test reply.");
-                    listener.Send(sendBytes, sendBytes.Length, remoteIPEndPoint);
+        public static void ReceiveCallback(IAsyncResult ar) {
+            UdpClient udpClient = ((UdpState)(ar.AsyncState)).UdpClient;
+            IPEndPoint ipEndPoint = ((UdpState)(ar.AsyncState)).IPEndPoint;
 
-                    return;
-                }
+            Byte[] receiveBytes = udpClient.EndReceive(ar, ref ipEndPoint);
+            //string receiveString = Encoding.ASCII.GetString(receiveBytes);
 
-            } catch (SocketException e) {
-                // Error codes: http://msdn.microsoft.com/en-us/library/windows/desktop/ms740668(v=vs.85).aspx
-                switch (e.ErrorCode) {
-                    case 10060:
-                        // Connection timed out.
-                        Console.WriteLine(e.ErrorCode + " WSAETIMEDOUT");
-                        break;
-                }
-                Console.WriteLine(e.ToString());
-            }
+            Console.WriteLine("Received packet from {0}\n", ipEndPoint);
+
+            Byte[] sendBytes = Encoding.ASCII.GetBytes("Port test reply.");
+            udpClient.Send(sendBytes, sendBytes.Length, ipEndPoint);
+            udpClient.Close();
         }
     }
 
@@ -128,5 +131,39 @@ namespace PortMapSleuth {
         public PortTestFinishedEventArgs(PortTestResult portTestResult) {
             PortTestResult = portTestResult;
         }
+    }
+
+    public class UdpState {
+        public UdpClient UdpClient;
+        public IPEndPoint IPEndPoint;
+    }
+
+    public enum PortTestResult {
+        /// <summary>
+        /// We could not contact the port test server or it otherwise failed.
+        /// </summary>
+        Unknown,
+        /// <summary>
+        /// None of the ports in the test succeeded.
+        /// </summary>
+        Fail,
+        /// <summary>
+        /// Some of the ports in the test succeeded.
+        /// </summary>
+        PartialSuccess,
+        /// <summary>
+        /// All ports in the test succeeded.
+        /// </summary>
+        FullSuccess
+    }
+
+    public class PortTestRequest {
+        public List<int> Ports { get; set; }
+        public IPProtocol IPProtocol { get; set; }
+    }
+
+    public enum IPProtocol {
+        TCP,
+        UDP
     }
 }
