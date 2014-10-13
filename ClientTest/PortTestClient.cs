@@ -7,7 +7,7 @@ using System.Text;
 using Newtonsoft.Json;
 
 namespace PortMapSleuth {
-    public class PortTestClient {
+    public class PortTestClient : IDisposable {
         public string PortMapSleuthURL;
         public PortTestResult PortTestResult;
         public delegate void PortTestFinishedEventHandler(PortTestFinishedEventArgs e);
@@ -125,6 +125,12 @@ namespace PortMapSleuth {
             Byte[] sendBytes = Encoding.ASCII.GetBytes("Port test reply.");
             udpClient.Send(sendBytes, sendBytes.Length, ipEndPoint);
             udpClient.Close();
+        }
+
+        public void Dispose() {
+            foreach (var udpClientListener in UdpClientListeners) {
+                udpClientListener.Close();
+            }
         }
     }
 
