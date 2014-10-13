@@ -8,17 +8,19 @@ using Newtonsoft.Json;
 
 namespace PortMapSleuth {
     public class PortTestClient {
-        public const string PortMapSleuthURL = "http://pms.subterraneangames.com/request";
-        //public const string PortMapSleuthURL = "http://127.0.0.1/request";
+        public string PortMapSleuthURL;
         public PortTestResult PortTestResult;
         public delegate void PortTestFinishedEventHandler(PortTestFinishedEventArgs e);
         public event PortTestFinishedEventHandler PortTestFinished;
         public bool IsPortTestFinished;
-        public List<UdpClient> UdpClientListeners; 
+        public List<UdpClient> UdpClientListeners;
 
-        public PortTestClient() {}
+        public PortTestClient(string portMapSleuthURL) {
+            PortMapSleuthURL = portMapSleuthURL;
+        }
 
-        public PortTestClient(PortTestFinishedEventHandler portTestFinishedEventHandler) {
+        public PortTestClient(string portMapSleuthURL, PortTestFinishedEventHandler portTestFinishedEventHandler) {
+            PortMapSleuthURL = portMapSleuthURL;
             PortTestFinished += portTestFinishedEventHandler;
         }
 
@@ -61,24 +63,24 @@ namespace PortMapSleuth {
         }
 
         private void StartWebRequest(string payload) {
-            var httpWebRequest = (HttpWebRequest)WebRequest.Create(PortMapSleuthURL);
-            httpWebRequest.ContentType = "text/json";
-            httpWebRequest.Method = "POST";
-            httpWebRequest.Proxy = null; // Setting this to null will save some time.
-
-            // Write the payload into the request stream:
             try {
+                var httpWebRequest = (HttpWebRequest)WebRequest.Create(PortMapSleuthURL);
+                httpWebRequest.ContentType = "text/json";
+                httpWebRequest.Method = "POST";
+                httpWebRequest.Proxy = null; // Setting this to null will save some time.
+
+                // Write the payload into the request stream:
                 using (var streamWriter = new StreamWriter(httpWebRequest.GetRequestStream())) {
                     streamWriter.Write(payload);
                     streamWriter.Flush();
                     streamWriter.Close();
                 }
+
+                // Send the request and response callback:
+                httpWebRequest.BeginGetResponse(FinishPortTestWebRequest, httpWebRequest);
             } catch (Exception e) {
                 Console.WriteLine(e.Message);
             }
-
-            // Send the request and response callback:
-            httpWebRequest.BeginGetResponse(FinishPortTestWebRequest, httpWebRequest);
         }
 
         private void FinishPortTestWebRequest(IAsyncResult result) {

@@ -7,19 +7,19 @@ using PortMapSleuth;
 namespace ClientTest {
     internal class Program {
         private static void Main() {
-            
+            const string portMapSluethURL = "http://someurl.com/request";
 
             // Use events to get the result:
             #if !PORTTESTPOLLING
-            var pms = new PortTestClient(PortTestFinishedEventHandler);
+            var pms = new PortTestClient(portMapSluethURL, PortTestFinishedEventHandler);
             pms.TestPorts(IPProtocol.UDP, new List<int> { 27015, 27016 });
 
             Console.ReadKey();
-            #endif
+#endif
 
             // Use poll to get the result:
             #if PORTTESTPOLLING
-            var pms = new PortTestClient();
+            var pms = new PortTestClient(portMapSluethURL);
             pms.TestPorts(IPProtocol.UDP, new List<int> { 27015, 27016 });
             bool portTestFinished = false;
             while (!portTestFinished) {
