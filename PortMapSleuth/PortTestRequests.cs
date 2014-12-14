@@ -90,7 +90,7 @@ namespace PortMapSleuth {
                     IPEndPoint remoteIpEndPointReply = new IPEndPoint(IPAddress.Any, 0);
                     Byte[] sendBytes = Encoding.ASCII.GetBytes("Port test.");
 
-                    udpClient.Client.ReceiveTimeout = 3000; // milliseconds
+                    udpClient.Client.ReceiveTimeout = 1000; // milliseconds
                     udpClient.Send(sendBytes, sendBytes.Length, remoteIpEndPoint);
                     udpClient.Receive(ref remoteIpEndPointReply);
 
@@ -103,8 +103,10 @@ namespace PortMapSleuth {
                         // Connection timed out.
                         Console.WriteLine(e.ErrorCode + " WSAETIMEDOUT");
                         break;
+                    default:
+                        Console.WriteLine(e.ErrorCode + e.Message);
+                        break;
                 }
-                Console.WriteLine(e.ToString());
 
                 return false;
             }
