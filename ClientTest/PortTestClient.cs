@@ -69,12 +69,20 @@ namespace PortMapSleuth {
                 httpWebRequest.Method = "POST";
                 httpWebRequest.Proxy = null; // Setting this to null will save some time.
 
-                // Write the payload into the request stream:
-                using (var streamWriter = new StreamWriter(httpWebRequest.GetRequestStream())) {
-                    streamWriter.Write(payload);
-                    streamWriter.Flush();
-                    streamWriter.Close();
-                }
+                // start an asynchronous request:
+                httpWebRequest.BeginGetRequestStream(asyncResult => {
+                    HttpWebRequest request = (HttpWebRequest)asyncResult.AsyncState;
+
+                    // End the operation
+                    Stream postStream = request.EndGetRequestStream(asyncResult);
+
+                    // Convert the string into a byte array.
+                    byte[] byteArray = Encoding.UTF8.GetBytes(payload);
+
+                    // Write to the request stream.
+                    postStream.Write(byteArray, 0, payload.Length);
+                    postStream.Close();
+                }, httpWebRequest);
 
                 // Send the request and response callback:
                 httpWebRequest.BeginGetResponse(FinishPortTestWebRequest, httpWebRequest);
