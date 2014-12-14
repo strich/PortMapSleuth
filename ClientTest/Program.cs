@@ -7,7 +7,7 @@ using PortMapSleuth;
 namespace ClientTest {
     internal class Program {
         private static void Main() {
-            const string portMapSluethURL = "http://someurl.com/request";
+            const string portMapSluethURL = "http://127.0.0.1:8080/request";
 
             // Use events to get the result:
             #if !PORTTESTPOLLING

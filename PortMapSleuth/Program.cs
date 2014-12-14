@@ -7,7 +7,7 @@ using Mono.Unix.Native;
 namespace PortMapSleuth {
     internal class Program {
         private static void Main(string[] args) {
-            var listeningOn = args.Length == 0 ? "http://*:80/" : "http://*:" + args[0] + "/";
+            var listeningOn = args.Length == 0 ? "http://*:8080/" : "http://*:" + args[0] + "/";
             var appHost = new AppHost()
                 .Init()
                 .Start(listeningOn);
@@ -17,19 +17,25 @@ namespace PortMapSleuth {
             // ------------------------------------------------------------- //
             // The below code is to support Unix daemonization.
             // Remove this and the Mono requirement to run it on Windows
-            UnixSignal[] signals = new[] { 
-                new UnixSignal(Signum.SIGINT), 
-                new UnixSignal(Signum.SIGTERM), 
-            };
+            if (Environment.OSVersion.Platform == PlatformID.Unix) {
+                UnixSignal[] signals = new[] { 
+                    new UnixSignal(Signum.SIGINT), 
+                    new UnixSignal(Signum.SIGTERM), 
+                };
 
-            // Wait for a unix signal:
-            for (bool exit = false; !exit; ) {
-                int id = UnixSignal.WaitAny(signals);
-                if (id >= 0 && id < signals.Length)
-                    if (signals[id].IsSet)
-                        exit = true;
+                // Wait for a unix signal:
+                for (bool exit = false; !exit; ) {
+                    int id = UnixSignal.WaitAny(signals);
+                    if (id >= 0 && id < signals.Length)
+                        if (signals[id].IsSet)
+                            exit = true;
+                }
             }
-            // ------------------------------------------------------------- //
+                // ------------------------------------------------------------- //
+            else {
+                Console.WriteLine("Press any key to stop...");
+                Console.ReadKey(true);
+            }
         }
 
         //Web Service Host Configuration
