@@ -63,14 +63,14 @@ namespace PortMapSleuth {
         }
 
         private void StartWebRequest(string payload) {
-            try {
-                var httpWebRequest = (HttpWebRequest)WebRequest.Create(PortMapSleuthURL);
-                httpWebRequest.ContentType = "text/json";
-                httpWebRequest.Method = "POST";
-                httpWebRequest.Proxy = null; // Setting this to null will save some time.
+            var httpWebRequest = (HttpWebRequest)WebRequest.Create(PortMapSleuthURL);
+            httpWebRequest.ContentType = "text/json";
+            httpWebRequest.Method = "POST";
+            httpWebRequest.Proxy = null; // Setting this to null will save some time.
 
-                // start an asynchronous request:
-                httpWebRequest.BeginGetRequestStream(asyncResult => {
+            // start an asynchronous request:
+            httpWebRequest.BeginGetRequestStream(asyncResult => {
+                try {
                     HttpWebRequest request = (HttpWebRequest)asyncResult.AsyncState;
 
                     // End the operation
@@ -82,12 +82,18 @@ namespace PortMapSleuth {
                     // Write to the request stream.
                     postStream.Write(byteArray, 0, payload.Length);
                     postStream.Close();
-                }, httpWebRequest);
+                } catch (Exception e) {
+                    Console.WriteLine(e.Message);
+                    PortTestException();
+                }
+            }, httpWebRequest);
 
+            try {
                 // Send the request and response callback:
                 httpWebRequest.BeginGetResponse(FinishPortTestWebRequest, httpWebRequest);
             } catch (Exception e) {
                 Console.WriteLine(e.Message);
+                PortTestException();
             }
         }
 
