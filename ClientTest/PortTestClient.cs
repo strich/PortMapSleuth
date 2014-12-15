@@ -69,28 +69,24 @@ namespace PortMapSleuth {
             httpWebRequest.Proxy = null; // Setting this to null will save some time.
 
             // start an asynchronous request:
-            httpWebRequest.BeginGetRequestStream(asyncResult => {
-                try {
-                    HttpWebRequest request = (HttpWebRequest)asyncResult.AsyncState;
+            httpWebRequest.BeginGetRequestStream(GetRequestStreamCallback, new object[] {httpWebRequest, payload});
+        }
 
-                    // End the operation
-                    Stream postStream = request.EndGetRequestStream(asyncResult);
-
-                    // Convert the string into a byte array.
-                    byte[] byteArray = Encoding.UTF8.GetBytes(payload);
-
-                    // Write to the request stream.
-                    postStream.Write(byteArray, 0, payload.Length);
-                    postStream.Close();
-                } catch (Exception e) {
-                    Console.WriteLine(e.Message);
-                    PortTestException();
-                }
-            }, httpWebRequest);
-
+        private void GetRequestStreamCallback(IAsyncResult asyncResult) {
             try {
-                // Send the request and response callback:
-                httpWebRequest.BeginGetResponse(FinishPortTestWebRequest, httpWebRequest);
+                object[] args = (object[])asyncResult.AsyncState;
+                string payload = (string)args[1];
+                HttpWebRequest request = (HttpWebRequest)args[0];
+
+                StreamWriter streamWriter = new StreamWriter(request.EndGetRequestStream(asyncResult), Encoding.UTF8);
+
+                // Write to the request stream.
+                streamWriter.Write(payload);
+                streamWriter.Flush();
+                streamWriter.Close();
+
+                // Start listening for a response:
+                request.BeginGetResponse(FinishPortTestWebRequest, request);
             } catch (Exception e) {
                 Console.WriteLine(e.Message);
                 PortTestException();
