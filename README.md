@@ -7,9 +7,9 @@ Built using ServiceStack and Newtonsoft.JSON.
 
 
 #The Server
-The server service is written with Linux in mind and so the Main() function has some Unix-specific code to support service daemons. However it is simple to remove and setup for Windows-based hosted.
+The server service supports Windows and Linux (supports service daemons).
 
-The server will listen on a well known port (80 by default) for the JSON service. When it accepts a port test request it will send a packet to the destination and wait a short amount of time for a reply. The result will be posted back to the client via the JSON service.
+The server will listen on a well known port (8080 by default) for the JSON service. When it accepts a port test request it will send a packet to the destination and wait a short amount of time for a reply. The result will be posted back to the client via the JSON service.
 
 To install the service on a Linux host simply copy the application and associated dll's to /opt/ and copy the UpStart config file to /etc/init/.
 You can run the service using 'start PortMapSleuth' and 'stop PortMapSleuth'.
@@ -25,3 +25,4 @@ var pms = new PortMapSleuth.PortTestClient();
 var portsOpen = pms.TestPorts(IPProtocol.UDP, new List<int> { 27015, 27016 });
 Console.WriteLine(portsOpen);
 ```
+This is a synchronous example and will block the thread until it is complete. See the example client code for an asynchronous method.
