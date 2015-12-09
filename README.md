@@ -1,6 +1,8 @@
 PortMapSleuth
 =============
 
+![Alt text](/PortMapSleuth - Port Test Failed.gif?raw=true "PortMapSleuth - Port Test Failed")
+
 Server-based JSON service and example client to test for open ports to help verify UPnP port maps.
 
 See an example of a video game running the port test as part of its multiplayer service [here](https://www.youtube.com/watch?v=DTaZ04NHE1g).
