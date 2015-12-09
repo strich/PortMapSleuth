@@ -14,6 +14,7 @@ namespace PortMapSleuth {
         public event PortTestFinishedEventHandler PortTestFinished;
         public bool IsPortTestFinished;
         public List<UdpClient> UdpClientListeners;
+        public List<HttpWebRequest> _activeHttpWebRequests = new List<HttpWebRequest>();
 
         public PortTestClient(string portMapSleuthURL) {
             PortMapSleuthURL = portMapSleuthURL;
@@ -64,12 +65,13 @@ namespace PortMapSleuth {
 
         private void StartWebRequest(string payload) {
             var httpWebRequest = (HttpWebRequest)WebRequest.Create(PortMapSleuthURL);
+            _activeHttpWebRequests.Add(httpWebRequest);
             httpWebRequest.ContentType = "text/json";
             httpWebRequest.Method = "POST";
             httpWebRequest.Proxy = null; // Setting this to null will save some time.
 
             // start an asynchronous request:
-            httpWebRequest.BeginGetRequestStream(GetRequestStreamCallback, new object[] {httpWebRequest, payload});
+            httpWebRequest.BeginGetRequestStream(GetRequestStreamCallback, new object[] { httpWebRequest, payload });
         }
 
         private void GetRequestStreamCallback(IAsyncResult asyncResult) {
@@ -96,6 +98,8 @@ namespace PortMapSleuth {
         private void FinishPortTestWebRequest(IAsyncResult result) {
             try {
                 var response = ((HttpWebRequest)result.AsyncState).EndGetResponse(result) as HttpWebResponse;
+
+                _activeHttpWebRequests.Remove((HttpWebRequest)result.AsyncState);
 
                 PortTestResult = (PortTestResult)Enum.Parse(typeof(PortTestResult), response.Headers.Get("PortTestResult"));
 
